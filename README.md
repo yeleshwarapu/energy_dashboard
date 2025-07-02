@@ -1,20 +1,27 @@
 # Energy Dashboard Simulator
 
-A modular simulation and visualization tool for modeling energy consumption patterns across commercial or industrial buildings, now adapted for realistic home energy simulation.
+A modular, realistic home energy simulation and dashboard for a 3-bedroom house. Model and visualize energy use, costs, and solar offset across all seasons.
 
 ## Features
-- Modular load models: HVAC, lighting, appliances/machines, solar
-- Time-based simulation (15-min or 1-hour steps)
-- Analytics: peak demand, subsystem breakdown, inefficiency flags
-- **Cost calculation:** total energy cost at 9 rupees per kWh
-- **Energy recommendations:** actionable suggestions based on your simulation results
-- Interactive dashboard: time-series, pie, and bar charts (dark mode)
-- Built-in test data for quick start
+- **Realistic home simulation:** 3-bedroom house with HVAC, kitchen, laundry, entertainment, EV charging, lighting, and solar PV
+- **Season-aware:** Choose Spring, Summer, Fall, or Winter—temperature, solar, lighting, HVAC, and price profiles adjust automatically
+- **Human-centric schedules:** Each subsystem/asset uses realistic daily/weekly usage patterns
+- **Interactive dashboard:**
+  - Time-series, pie, bar, and hierarchical sunburst charts (dark mode)
+  - Hierarchical analytics: see breakdowns by HVAC, Kitchen, Laundry, Entertainment, EV Charging, etc.
+  - No plots shown until you run a simulation (clean startup)
+- **Analytics:**
+  - Peak load and subsystem
+  - Subsystem energy shares (with hierarchy)
+  - Solar offset percentage
+  - Total energy consumed (kWh)
+  - Total cost (₹, seasonally adjusted per kWh)
+  - Actionable energy recommendations
+- **Customizable:** Easily adjust schedules, power ratings, or add new loads
 
 ## Directory Structure
 ```
 simulator/
-  __init__.py
   models/
     hvac.py
     lighting.py
@@ -22,7 +29,7 @@ simulator/
   analytics.py
   visualizer.py
   simulator.py
-main.py
+app.py
 ```
 
 ## Requirements
@@ -38,30 +45,52 @@ main.py
    ```
    pip install -r requirements.txt
    ```
-2. Run the simulator:
+2. Run the dashboard:
    ```
-   python main.py
+   python app.py
    ```
 
 ## Dashboard Usage
-- Select your desired time step and simulation period.
+- **Select your season** (Spring, Summer, Fall, Winter) in the controls.
+- Choose time step (1-hour or 15-min) and simulation period (1 day or 7 days).
 - Click **Run Simulation** to generate results.
 - **Analytics panel** will display:
   - Peak load and subsystem
-  - Subsystem energy shares
+  - Hierarchical subsystem energy shares (e.g., HVAC > Chiller/Pump/Fan)
   - Solar offset percentage
-  - **Total energy consumed (kWh)**
-  - **Total cost (₹, at 9 rupees per kWh)**
-  - **Energy recommendations** (e.g., increase solar, shift loads, reduce night HVAC, audit appliances)
-- Plots update instantly to show time series, subsystem shares, and daily totals.
+  - Total energy consumed (kWh)
+  - Total cost (₹, with seasonal price per kWh)
+  - Actionable recommendations (e.g., increase solar, shift loads, reduce night HVAC, audit appliances)
+- **Plots:**
+  - Time series (kW)
+  - Pie chart (energy share)
+  - Sunburst (hierarchical breakdown)
+  - Daily bar chart (total kWh per day)
+- **No plots are shown until you run a simulation.**
+
+## Seasons & What Changes
+- **Spring:** 15–25°C, 10h solar, mild HVAC, normal lighting, ₹8/kWh
+- **Summer:** 22–34°C, 10h solar, cooling HVAC, normal lighting, ₹9/kWh
+- **Fall:** 14–24°C, 9h solar, mild HVAC, normal lighting, ₹8/kWh
+- **Winter:** 5–16°C, 7h solar, heating HVAC, more lighting, ₹10/kWh
+- Schedules, solar output, and costs all adjust automatically.
 
 ## Customization
-- Edit `main.py` or `app.py` to define your own load schedules, power ratings, or simulation period.
+- Edit `app.py` to define your own load schedules, power ratings, or simulation period.
 - Extend models in `simulator/models/` for more detailed equipment.
-- Adjust the cost rate or recommendation logic in `app.py` as needed.
+- Adjust the cost rate, temperature profiles, or recommendation logic as needed.
 
-## Optional Extensions
-- Add schedule optimization, export features, or more advanced analytics as needed.
+## Interpreting Results
+- **Peak load:** When and which subsystem draws the most power
+- **Subsystem shares:** See which areas (HVAC, Kitchen, etc.) use the most energy
+- **Solar offset:** How much of your demand is met by solar
+- **Total cost:** Calculated with the correct seasonal rate
+- **Recommendations:** Suggestions are based on your simulated usage and can help you save energy or money
+
+## Example: Compare Summer vs. Winter
+1. Select "Summer", 1-hour steps, 7 days, and run the simulation.
+2. Note the high HVAC and EV charging shares, and solar offset.
+3. Switch to "Winter" and run again—see how heating, lighting, and costs change.
 
 ---
 MIT License 
