@@ -34,7 +34,7 @@ def repeat_with_variation(base, days, steps_per_day, min_on=0, max_on=None):
         result.extend(arr)
     return result
 
-def run_simulation(randomize=True, timestep_hours=1.0, period_hours=24, season="summer"):
+def run_simulation(randomize=True, timestep_hours=1.0, period_hours=24, season="summer", hvac_setpoint=25, chiller_max_power=2.2):
     np.random.seed(42)
     sim = BuildingSimulator(timestep_hours=timestep_hours, period_hours=period_hours)
     days = int(period_hours / 24)
@@ -87,21 +87,19 @@ def run_simulation(randomize=True, timestep_hours=1.0, period_hours=24, season="
             hour = t * timestep_hours
             temp = day_min + (day_max - day_min) * 0.5 * (1 + np.sin((hour - 15) / 24 * 2 * np.pi))
             temp_profile.append(temp)
-    # --- HVAC: Chiller, Pump, Fan (seasonal logic) ---
+    # --- HVAC: Chiller, Pump, Fan (seasonal logic, use slider values) ---
     if hvac_mode == "cool":
-        sim.add_load(HVACLoad("Chiller", temp_profile, setpoint=25, max_power=2.2, alpha=0.07), 'Chiller')
-        sim.add_load(HVACLoad("Pump", temp_profile, setpoint=25, max_power=0.15, alpha=0.07), 'Pump')
-        sim.add_load(HVACLoad("Fan", temp_profile, setpoint=25, max_power=0.4, alpha=0.10), 'Fan')
+        sim.add_load(HVACLoad("Chiller", temp_profile, setpoint=hvac_setpoint, max_power=chiller_max_power, alpha=0.07), 'Chiller')
+        sim.add_load(HVACLoad("Pump", temp_profile, setpoint=hvac_setpoint, max_power=0.15, alpha=0.07), 'Pump')
+        sim.add_load(HVACLoad("Fan", temp_profile, setpoint=hvac_setpoint, max_power=0.4, alpha=0.10), 'Fan')
     elif hvac_mode == "heat":
-        # Assume resistive heating (COP=1), higher setpoint
-        sim.add_load(HVACLoad("Chiller", [18-temp for temp in temp_profile], setpoint=18, max_power=2.2, alpha=0.07), 'Chiller')
-        sim.add_load(HVACLoad("Pump", [18-temp for temp in temp_profile], setpoint=18, max_power=0.15, alpha=0.07), 'Pump')
-        sim.add_load(HVACLoad("Fan", [18-temp for temp in temp_profile], setpoint=18, max_power=0.4, alpha=0.10), 'Fan')
+        sim.add_load(HVACLoad("Chiller", [hvac_setpoint-temp for temp in temp_profile], setpoint=hvac_setpoint, max_power=chiller_max_power, alpha=0.07), 'Chiller')
+        sim.add_load(HVACLoad("Pump", [hvac_setpoint-temp for temp in temp_profile], setpoint=hvac_setpoint, max_power=0.15, alpha=0.07), 'Pump')
+        sim.add_load(HVACLoad("Fan", [hvac_setpoint-temp for temp in temp_profile], setpoint=hvac_setpoint, max_power=0.4, alpha=0.10), 'Fan')
     else:
-        # Mild: minimal HVAC
-        sim.add_load(HVACLoad("Chiller", temp_profile, setpoint=25, max_power=0.8, alpha=0.03), 'Chiller')
-        sim.add_load(HVACLoad("Pump", temp_profile, setpoint=25, max_power=0.05, alpha=0.03), 'Pump')
-        sim.add_load(HVACLoad("Fan", temp_profile, setpoint=25, max_power=0.2, alpha=0.05), 'Fan')
+        sim.add_load(HVACLoad("Chiller", temp_profile, setpoint=hvac_setpoint, max_power=chiller_max_power, alpha=0.03), 'Chiller')
+        sim.add_load(HVACLoad("Pump", temp_profile, setpoint=hvac_setpoint, max_power=0.05, alpha=0.03), 'Pump')
+        sim.add_load(HVACLoad("Fan", temp_profile, setpoint=hvac_setpoint, max_power=0.2, alpha=0.05), 'Fan')
     # --- Lighting: more in winter evenings ---
     light_schedule = []
     for d in range(days):
@@ -307,6 +305,22 @@ app.layout = dbc.Container([
                     html.Br(),
                     # Run simulation button
                     dbc.Button("Run Simulation", id="run-btn", color="primary", className="me-2"),
+                    html.Br(),
+                    html.Label("HVAC Setpoint (°C)", style={"marginTop": "10px"}),
+                    dcc.Slider(
+                        id="hvac-setpoint-slider",
+                        min=18, max=28, step=0.5, value=25,
+                        marks={i: str(i) for i in range(18, 29)},
+                        tooltip={"placement": "bottom", "always_visible": False}
+                    ),
+                    html.Br(),
+                    html.Label("Chiller Max Power (kW)", style={"marginTop": "10px"}),
+                    dcc.Slider(
+                        id="chiller-maxpower-slider",
+                        min=1.0, max=4.0, step=0.1, value=2.2,
+                        marks={i: str(i) for i in range(1, 5)},
+                        tooltip={"placement": "bottom", "always_visible": False}
+                    ),
                 ])
             ])
         ], width=3),
@@ -321,37 +335,39 @@ app.layout = dbc.Container([
             ])
         ], width=9)
     ], className="mb-4"),
-    # Main plots (all start empty)
+    # Main plots (all start hidden)
     dbc.Row([
-        dbc.Col(dcc.Graph(id="time-series-plot", figure={}), width=12)
+        dbc.Col(dcc.Graph(id="time-series-plot", figure={}, style={'display': 'none'}), width=12)
     ]),
     dbc.Row([
-        dbc.Col(dcc.Graph(id="pie-plot", figure={}), width=4),
-        dbc.Col(dcc.Graph(id="sunburst-plot", figure={}), width=4),
-        dbc.Col(dcc.Graph(id="bar-plot", figure={}), width=4)
+        dbc.Col(dcc.Graph(id="pie-plot", figure={}, style={'display': 'none'}), width=4),
+        dbc.Col(dcc.Graph(id="sunburst-plot", figure={}, style={'display': 'none'}), width=4),
+        dbc.Col(dcc.Graph(id="bar-plot", figure={}, style={'display': 'none'}), width=4)
     ])
 ], fluid=True)
 
 # --- MAIN DASH CALLBACK ---
 # Runs the simulation and updates all plots and analytics when the user clicks 'Run Simulation'.
 @app.callback(
-    [Output("time-series-plot", "figure"),
-     Output("pie-plot", "figure"),
-     Output("sunburst-plot", "figure"),
-     Output("bar-plot", "figure"),
+    [Output("time-series-plot", "figure"), Output("time-series-plot", "style"),
+     Output("pie-plot", "figure"), Output("pie-plot", "style"),
+     Output("sunburst-plot", "figure"), Output("sunburst-plot", "style"),
+     Output("bar-plot", "figure"), Output("bar-plot", "style"),
      Output("analytics-output", "children"),
      Output("warnings-output", "children")],
     [Input("run-btn", "n_clicks")],
-    [State("randomize-toggle", "value"), State("season-radio", "value"), State("timestep-radio", "value"), State("period-radio", "value")]
+    [State("randomize-toggle", "value"), State("season-radio", "value"), State("timestep-radio", "value"), State("period-radio", "value"),
+     State("hvac-setpoint-slider", "value"), State("chiller-maxpower-slider", "value")]
 )
-def update_dashboard(n_clicks, randomize_value, season_value, timestep_value, period_value):
+def update_dashboard(n_clicks, randomize_value, season_value, timestep_value, period_value, hvac_setpoint, chiller_max_power):
     if not n_clicks:
-        raise dash.exceptions.PreventUpdate
+        # Hide all plots before simulation
+        return ({}, {'display': 'none'}, {}, {'display': 'none'}, {}, {'display': 'none'}, {}, {'display': 'none'}, [], "")
     randomize = 1 in (randomize_value or [])
     timestep = float(timestep_value)
     period = int(period_value)
     season = season_value or "summer"
-    df = run_simulation(randomize=randomize, timestep_hours=timestep, period_hours=period, season=season)
+    df = run_simulation(randomize=randomize, timestep_hours=timestep, period_hours=period, season=season, hvac_setpoint=hvac_setpoint, chiller_max_power=chiller_max_power)
     # Get price_per_kwh for analytics
     if season == "summer":
         price_per_kwh = 9
@@ -363,75 +379,24 @@ def update_dashboard(n_clicks, randomize_value, season_value, timestep_value, pe
         price_per_kwh = 8
     else:
         price_per_kwh = 9
-    peak_hour, peak_subsystem, peak_value, shares, solar_pct, warnings, total_energy_kwh, _, recommendations = get_analytics(df, timestep)
-    total_cost = total_energy_kwh * price_per_kwh
-    analytics = [
-        html.P(f"Peak load at hour {peak_hour}: {peak_value:.2f} kW ({peak_subsystem})"),
-        html.P("Subsystem energy share (%):")
-    ]
-    # Hierarchical order for analytics
-    def add_hierarchical_share(analytics, shares):
-        hvac_children = ['Chiller', 'Pump', 'Fan']
-        kitchen_children = ['Fridge', 'Dishwasher', 'Microwave', 'Oven']
-        laundry_children = ['Washer', 'Dryer']
-        entertainment_children = ['TV', 'Computer']
-        ev_children = ['EV Charger']
-        # HVAC and children
-        hvac_total = sum(shares[c] for c in hvac_children if c in shares)
-        if hvac_total > 0:
-            analytics.append(html.Li(f"HVAC: {hvac_total:.1f}%"))
-            for child in hvac_children:
-                if child in shares:
-                    analytics.append(html.Ul([html.Li(f"{child}: {shares[child]:.1f}%")]))
-        # Kitchen and children
-        kitchen_total = sum(shares[c] for c in kitchen_children if c in shares)
-        if kitchen_total > 0:
-            analytics.append(html.Li(f"Kitchen: {kitchen_total:.1f}%"))
-            for child in kitchen_children:
-                if child in shares:
-                    analytics.append(html.Ul([html.Li(f"{child}: {shares[child]:.1f}%")]))
-        # Laundry and children
-        laundry_total = sum(shares[c] for c in laundry_children if c in shares)
-        if laundry_total > 0:
-            analytics.append(html.Li(f"Laundry: {laundry_total:.1f}%"))
-            for child in laundry_children:
-                if child in shares:
-                    analytics.append(html.Ul([html.Li(f"{child}: {shares[child]:.1f}%")]))
-        # Entertainment and children
-        entertainment_total = sum(shares[c] for c in entertainment_children if c in shares)
-        if entertainment_total > 0:
-            analytics.append(html.Li(f"Entertainment: {entertainment_total:.1f}%"))
-            for child in entertainment_children:
-                if child in shares:
-                    analytics.append(html.Ul([html.Li(f"{child}: {shares[child]:.1f}%")]))
-        # EV Charging
-        ev_total = sum(shares[c] for c in ev_children if c in shares)
-        if ev_total > 0:
-            analytics.append(html.Li(f"EV Charging: {ev_total:.1f}%"))
-            for child in ev_children:
-                if child in shares:
-                    analytics.append(html.Ul([html.Li(f"{child}: {shares[child]:.1f}%")]))
-        # Other top-level (do not list parents or children again)
-        all_children = hvac_children + kitchen_children + laundry_children + entertainment_children + ev_children
-        for k, v in shares.items():
-            if k not in all_children:
-                analytics.append(html.Li(f"{k}: {v:.1f}%"))
-        return analytics
-    analytics = add_hierarchical_share(analytics, shares)
-    analytics.append(html.P(f"Solar offset: {solar_pct:.1f}% of total demand"))
-    analytics.append(html.P(f"Total energy consumed: {total_energy_kwh:.1f} kWh"))
-    analytics.append(html.P(f"Total cost: ₹{total_cost:,.0f} (₹{price_per_kwh}/kWh for {season.title()})"))
-    analytics.append(html.P("Recommendations:"))
-    analytics += [html.Li(rec) for rec in recommendations]
-    warnings_div = [html.Div(w) for w in warnings] if warnings else ""
-    # Return all updated dashboard elements
+    peak_hour, peak_subsystem, peak_value, shares, solar_pct, warnings, total_energy_kwh, total_cost, recommendations = get_analytics(df, timestep)
+    # Show all plots after simulation
     return (
-        get_time_series_fig(df),
-        get_pie_share_fig(df, timestep),
-        get_sunburst_share_fig(df, timestep),
-        get_daily_bar_fig(df, timestep),
-        analytics,
-        warnings_div
+        get_time_series_fig(df), {},
+        get_pie_share_fig(df, timestep), {},
+        get_sunburst_share_fig(df, timestep), {},
+        get_daily_bar_fig(df, timestep), {},
+        [
+            html.P(f"Peak load at hour {peak_hour}: {peak_value:.2f} kW ({peak_subsystem})"),
+            html.P("Subsystem energy share (%):"),
+            html.Ul([html.Li(f"{k}: {v:.1f}%") for k, v in shares.items()]),
+            html.P(f"Solar offset: {solar_pct:.1f}% of total demand"),
+            html.P(f"Total energy consumed: {total_energy_kwh:.1f} kWh"),
+            html.P(f"Total cost: ₹{total_cost:,.0f} (₹{price_per_kwh}/kWh for {season.title()})"),
+            html.P("Recommendations:"),
+            html.Ul([html.Li(rec) for rec in recommendations])
+        ],
+        [html.Div(w) for w in warnings] if warnings else ""
     )
 
 if __name__ == "__main__":

@@ -9,6 +9,7 @@ A modular, realistic home energy simulation and dashboard for a 3-bedroom house.
 - **Interactive dashboard:**
   - Time-series, pie, bar, and hierarchical sunburst charts (dark mode)
   - Hierarchical analytics: see breakdowns by HVAC, Kitchen, Laundry, Entertainment, EV Charging, etc.
+  - **Interactive sliders** for HVAC setpoint and chiller max power—see the impact instantly
   - No plots shown until you run a simulation (clean startup)
 - **Analytics:**
   - Peak load and subsystem
@@ -53,6 +54,7 @@ app.py
 ## Dashboard Usage
 - **Select your season** (Spring, Summer, Fall, Winter) in the controls.
 - Choose time step (1-hour or 15-min) and simulation period (1 day or 7 days).
+- **Adjust the HVAC setpoint and chiller max power using the sliders** to see how comfort and system size affect energy and cost.
 - Click **Run Simulation** to generate results.
 - **Analytics panel** will display:
   - Peak load and subsystem
@@ -91,6 +93,7 @@ app.py
 1. Select "Summer", 1-hour steps, 7 days, and run the simulation.
 2. Note the high HVAC and EV charging shares, and solar offset.
 3. Switch to "Winter" and run again—see how heating, lighting, and costs change.
+4. **Try adjusting the HVAC setpoint and chiller max power sliders** to see how comfort and system size affect your results.
 
 ---
 MIT License 
