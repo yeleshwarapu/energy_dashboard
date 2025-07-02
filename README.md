@@ -95,5 +95,12 @@ app.py
 3. Switch to "Winter" and run again—see how heating, lighting, and costs change.
 4. **Try adjusting the HVAC setpoint and chiller max power sliders** to see how comfort and system size affect your results.
 
+## New Feature: Energy Source Selector
+
+- Users can now choose the primary energy source for the home: **Coal, Solar, Nuclear, Hydro, or Wind**.
+- The cost per kWh is now realistic and varies by both energy source and season (e.g., solar is cheapest in summer, coal is most expensive in winter).
+- Analytics and recommendations are context-aware: you get seasonal tips and energy-source-specific advice.
+- The dashboard automatically updates total cost and recommendations based on your selection.
+
 ---
 MIT License 
